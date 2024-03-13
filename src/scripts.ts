@@ -17,6 +17,10 @@ let ascendingRegion: boolean;
 let ascendingLanguage: boolean;
 let ascendingCurrency: boolean;
 
+let currentDisplayedCountryAmount = 20;
+let searchQuery = '';
+let sortOrder = '';
+
 type Country = {
   name: string;
   capital: string;
@@ -52,8 +56,8 @@ const updateCountryList = (countries: Country[]) => {
   });
 };
 
-const fetchData = async (url: string) => {
-  const taskUrl:string = url;
+const fetchData = async (url: string, sort?: string) => {
+  const taskUrl:string = sort ? `${url}&${sort}` : url; // Append sort parameter if provided
   const countries: Country[] = [];
   try {
     const response = await axios.get(taskUrl);
@@ -69,62 +73,42 @@ const fetchData = async (url: string) => {
 };
 
 sortByName.addEventListener('click', async () => {
-  let sortedCountries: Country[];
-  if (ascendingName) {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=name&_limit=20');
-    ascendingName = false;
-  } else {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=name&_order=desc&_limit=20');
-    ascendingName = true;
-  }
+  sortOrder = ascendingName ? '_sort=name' : '_sort=name&_order=desc';
+  ascendingName = !ascendingName;
+  const url = `http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}&q=${searchQuery}&${sortOrder}`;
+  const sortedCountries: Country[] = await fetchData(url);
   updateCountryList(sortedCountries);
 });
 
 sortByCapital.addEventListener('click', async () => {
-  let sortedCountries: Country[];
-  if (ascendingCapital) {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=capital&_limit=20');
-    ascendingCapital = false;
-  } else {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=capital&_order=desc&_limit=20');
-    ascendingCapital = true;
-  }
+  sortOrder = ascendingCapital ? '_sort=capital' : '_sort=capital&_order=desc';
+  ascendingCapital = !ascendingCapital;
+  const url = `http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}&q=${searchQuery}&${sortOrder}`;
+  const sortedCountries: Country[] = await fetchData(url);
   updateCountryList(sortedCountries);
 });
 
 sortByRegion.addEventListener('click', async () => {
-  let sortedCountries: Country[];
-  if (ascendingRegion) {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=region&_limit=20');
-    ascendingRegion = false;
-  } else {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=region&_order=desc&_limit=20');
-    ascendingRegion = true;
-  }
+  sortOrder = ascendingRegion ? '_sort=region' : '_sort=region&_order=desc';
+  ascendingRegion = !ascendingRegion;
+  const url = `http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}&q=${searchQuery}&${sortOrder}`;
+  const sortedCountries: Country[] = await fetchData(url);
   updateCountryList(sortedCountries);
 });
 
 sortByLanguage.addEventListener('click', async () => {
-  let sortedCountries: Country[];
-  if (ascendingLanguage) {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=language.name&_limit=20');
-    ascendingLanguage = false;
-  } else {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=language.name&_order=desc&_limit=20');
-    ascendingLanguage = true;
-  }
+  sortOrder = ascendingLanguage ? '_sort=language.name' : '_sort=language.name&_order=desc';
+  ascendingLanguage = !ascendingLanguage;
+  const url = `http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}&q=${searchQuery}&${sortOrder}`;
+  const sortedCountries: Country[] = await fetchData(url);
   updateCountryList(sortedCountries);
 });
 
 sortByCurrency.addEventListener('click', async () => {
-  let sortedCountries: Country[];
-  if (ascendingCurrency) {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=currency.name&_limit=20');
-    ascendingCurrency = false;
-  } else {
-    sortedCountries = await fetchData('http://localhost:3004/countries?_sort=currency.name&_order=desc&_limit=20');
-    ascendingCurrency = true;
-  }
+  sortOrder = ascendingCurrency ? '_sort=currency.name' : '_sort=currency.name&_order=desc';
+  ascendingCurrency = !ascendingCurrency;
+  const url = `http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}&q=${searchQuery}&${sortOrder}`;
+  const sortedCountries: Country[] = await fetchData(url);
   updateCountryList(sortedCountries);
 });
 
@@ -136,10 +120,22 @@ const loadAllCardsFromDb = (countries: Promise<Country[] | any[]>) => {
   });
 };
 
+const threshold = 1;
+
+document.addEventListener('scroll', async () => {
+  if (window.innerHeight + window.pageYOffset + threshold >= document.body.offsetHeight) {
+    currentDisplayedCountryAmount += 20;
+    const url = `http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}&q=${searchQuery}&${sortOrder}`;
+    const filteredCountries: Country[] = await fetchData(url);
+    updateCountryList(filteredCountries);
+  }
+});
+
 searchInput.addEventListener('input', async (event) => {
-  const searchValue = (event.target as HTMLInputElement).value;
-  const filteredCountries: Country[] = await fetchData(`http://localhost:3004/countries?q=${searchValue}&_limit=20`);
+  searchQuery = (event.target as HTMLInputElement).value;
+  const url = `http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}&q=${searchQuery}&${sortOrder}`;
+  const filteredCountries: Country[] = await fetchData(url);
   updateCountryList(filteredCountries);
 });
 
-loadAllCardsFromDb(fetchData('http://localhost:3004/countries?_limit=20'));
+loadAllCardsFromDb(fetchData(`http://localhost:3004/countries?_limit=${currentDisplayedCountryAmount}`));
